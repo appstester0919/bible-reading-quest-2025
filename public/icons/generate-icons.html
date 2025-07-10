@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>生成 PWA 圖標</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .icon-preview { margin: 10px; display: inline-block; text-align: center; }
+        canvas { border: 1px solid #ccc; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>聖經讀經之旅 - PWA 圖標生成器</h1>
+    <p>這個頁面會自動生成所需的 PWA 圖標</p>
+    
+    <div id="icons-container"></div>
+    
+    <script>
+        // 圖標尺寸列表
+        const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        
+        function createIcon(size) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // 背景漸層
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#6366f1'); // indigo-500
+            gradient.addColorStop(0.5, '#8b5cf6'); // violet-500  
+            gradient.addColorStop(1, '#a855f7'); // purple-500
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+            
+            // 圓角效果
+            ctx.globalCompositeOperation = 'destination-in';
+            ctx.beginPath();
+            const radius = size * 0.2; // 20% 圓角
+            ctx.roundRect(0, 0, size, size, radius);
+            ctx.fill();
+            
+            // 重置混合模式
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // 文字 "聖"
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.4}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('聖', size / 2, size / 2);
+            
+            return canvas;
+        }
+        
+        function downloadCanvas(canvas, filename) {
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+        
+        // 生成所有圖標
+        const container = document.getElementById('icons-container');
+        
+        iconSizes.forEach(size => {
+            const canvas = createIcon(size);
+            
+            const preview = document.createElement('div');
+            preview.className = 'icon-preview';
+            
+            const label = document.createElement('div');
+            label.textContent = `${size}x${size}`;
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = '下載';
+            downloadBtn.onclick = () => downloadCanvas(canvas, `icon-${size}x${size}.png`);
+            
+            preview.appendChild(canvas);
+            preview.appendChild(label);
+            preview.appendChild(downloadBtn);
+            container.appendChild(preview);
+        });
+        
+        // 添加全部下載按鈕
+        const downloadAllBtn = document.createElement('button');
+        downloadAllBtn.textContent = '下載全部圖標';
+        downloadAllBtn.style.cssText = 'padding: 10px 20px; margin: 20px; font-size: 16px; background: #6366f1; color: white; border: none; border-radius: 5px; cursor: pointer;';
+        downloadAllBtn.onclick = () => {
+            iconSizes.forEach(size => {
+                setTimeout(() => {
+                    const canvas = createIcon(size);
+                    downloadCanvas(canvas, `icon-${size}x${size}.png`);
+                }, size); // 延遲下載避免瀏覽器阻擋
+            });
+        };
+        
+        container.appendChild(downloadAllBtn);
+        
+        // 添加 CanvasRenderingContext2D.roundRect polyfill
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, width, height, radius) {
+                this.beginPath();
+                this.moveTo(x + radius, y);
+                this.lineTo(x + width - radius, y);
+                this.quadraticCurveTo(x + width, y, x + width, y + radius);
+                this.lineTo(x + width, y + height - radius);
+                this.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                this.lineTo(x + radius, y + height);
+                this.quadraticCurveTo(x, y + height, x, y + height - radius);
+                this.lineTo(x, y + radius);
+                this.quadraticCurveTo(x, y, x + radius, y);
+                this.closePath();
+            };
+        }
+    </script>
+</body>
+</html>

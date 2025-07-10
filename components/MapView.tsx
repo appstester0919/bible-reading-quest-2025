@@ -1,0 +1,345 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { ALL_BOOKS } from '@/lib/bibleData'
+import confetti from 'canvas-confetti'
+import Modal from './ui/Modal'
+import dynamic from 'next/dynamic'
+
+interface MapViewProps {
+  completedBooks: string[];
+  showEncouragement: boolean;
+  showFireworks: boolean;
+}
+
+// 生成真實拼圖形狀
+const getPuzzleShape = (id: number) => {
+  const baseShapes = [
+    // 有右凸起的拼圖
+    `polygon(0% 0%, 70% 0%, 75% -5%, 85% -5%, 90% 0%, 100% 0%, 100% 100%, 0% 100%)`,
+    // 有下凸起的拼圖  
+    `polygon(0% 0%, 100% 0%, 100% 70%, 105% 75%, 105% 85%, 100% 90%, 100% 100%, 0% 100%)`,
+    // 有左凹槽的拼圖
+    `polygon(0% 0%, 100% 0%, 100% 100%, 30% 100%, 25% 105%, 15% 105%, 10% 100%, 0% 100%)`,
+    // 有上凹槽的拼圖
+    `polygon(0% 0%, 30% 0%, 25% -5%, 15% -5%, 10% 0%, 0% 0%, 0% 100%, 100% 100%, 100% 0%)`,
+    // 標準矩形
+    `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)`
+  ];
+  
+  return baseShapes[id % baseShapes.length];
+};
+
+// 生成 11x6 拼圖網格 (配合地圖比例：橫6直11)
+const generatePuzzleGrid = () => {
+  const grid = [];
+  const cols = 6;  // 橫向6格
+  const rows = 11; // 直向11格
+  
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const index = row * cols + col;
+      if (index < 66) { // 只生成66塊拼圖
+        grid.push({
+          id: index,
+          book: ALL_BOOKS[index],
+          x: (col / cols) * 100,
+          y: (row / rows) * 100,
+          width: 100 / cols,
+          height: 100 / rows,
+          isNewlyCompleted: false
+        });
+      }
+    }
+  }
+  return grid;
+};
+
+export default function MapView({ completedBooks, showEncouragement, showFireworks }: MapViewProps) {
+  const [showModal, setShowModal] = useState(false);
+  const [puzzleGrid, setPuzzleGrid] = useState(() => generatePuzzleGrid());
+  const [previousCompletedCount, setPreviousCompletedCount] = useState(0);
+
+  useEffect(() => {
+    if (showEncouragement) {
+      setShowModal(true);
+    }
+  }, [showEncouragement]);
+
+  useEffect(() => {
+    if (showFireworks) {
+      const duration = 5 * 1000;
+      const end = Date.now() + duration;
+
+      (function frame() {
+        confetti({
+          particleCount: 2,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 },
+        });
+        confetti({
+          particleCount: 2,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 },
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      }());
+    }
+  }, [showFireworks]);
+
+  const completedSet = new Set(completedBooks);
+
+  // 檢測新完成的拼圖塊並觸發動畫
+  useEffect(() => {
+    if (completedBooks.length > previousCompletedCount) {
+      // 有新完成的書卷，觸發拼圖掉落動畫
+      const newlyCompletedBooks = completedBooks.slice(previousCompletedCount);
+      
+      setPuzzleGrid(prev => prev.map(piece => ({
+        ...piece,
+        isNewlyCompleted: newlyCompletedBooks.includes(piece.book.name)
+      })));
+
+      // 3秒後清除動畫狀態
+      setTimeout(() => {
+        setPuzzleGrid(prev => prev.map(piece => ({
+          ...piece,
+          isNewlyCompleted: false
+        })));
+      }, 3000);
+    }
+    setPreviousCompletedCount(completedBooks.length);
+  }, [completedBooks.length, previousCompletedCount]);
+
+  return (
+    <>
+      <div className="w-full bg-gradient-to-b from-amber-100 via-yellow-50 to-orange-100 rounded-lg p-4 shadow-inner relative overflow-hidden">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">🧩 應許之地拼圖</h2>
+          <p className="text-gray-600">完成每卷聖經，解鎖一塊聖地拼圖</p>
+          <div className="text-sm text-gray-500 mt-2">
+            已解鎖 {completedBooks.length} / 66 塊拼圖
+          </div>
+        </div>
+
+        {/* 拼圖地圖容器 */}
+        <div className="relative w-full mx-auto rounded-lg overflow-hidden shadow-lg" 
+             style={{ 
+               aspectRatio: '6/11',  // 修正為橫6直11的比例
+               maxWidth: '100%'
+             }}>
+          
+          {/* 真實以色列地圖背景層 */}
+          <div 
+            className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat rounded-lg"
+            style={{
+              backgroundImage: 'url(/Map.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          >
+            {/* 地圖覆蓋層，增強對比度 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-50/20 via-transparent to-amber-100/20"></div>
+            
+            {/* 邊界框 */}
+            <div className="absolute inset-0 border-4 border-amber-700 rounded-lg opacity-80 shadow-inner"></div>
+          </div>
+
+          {/* 拼圖塊 */}
+          {puzzleGrid.map((piece) => {
+            const isCompleted = completedSet.has(piece.book.name);
+            return (
+              <div
+                key={piece.id}
+                className={`absolute transition-all duration-700 cursor-pointer group ${
+                  isCompleted 
+                    ? 'opacity-100 z-10' 
+                    : 'opacity-90 hover:opacity-100'
+                } ${piece.isNewlyCompleted ? 'animate-puzzle-drop' : ''}`}
+                style={{
+                  left: `${piece.x}%`,
+                  top: `${piece.y}%`,
+                  width: `${piece.width}%`,
+                  height: `${piece.height}%`,
+                }}
+                title={`${piece.book.name} ${isCompleted ? '(已完成)' : '(未完成)'}`}
+              >
+                {/* 拼圖塊背景 */}
+                <div 
+                  className="w-full h-full relative"
+                  style={{
+                    clipPath: getPuzzleShape(piece.id),
+                    border: isCompleted 
+                      ? '2px solid rgba(34, 197, 94, 0.9)' // 完成的拼圖用綠色邊框，但更細，不遮蓋地圖
+                      : '3px solid rgba(120, 120, 120, 0.9)', // 未完成用較粗的灰色邊框
+                    boxShadow: isCompleted 
+                      ? '0 0 15px rgba(34, 197, 94, 0.8), inset 0 1px 3px rgba(255, 255, 255, 0.2)' // 完成的有綠色光暈但不遮蓋內容
+                      : '0 3px 12px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.2)', // 未完成有強烈陰影遮蓋效果
+                    background: isCompleted 
+                      ? 'rgba(255, 255, 255, 0.05)' // 完成的拼圖幾乎完全透明，清楚顯示底下的地圖
+                      : `linear-gradient(135deg, 
+                          rgba(200, 200, 200, 0.98) 0%, 
+                          rgba(180, 180, 180, 0.98) 50%, 
+                          rgba(160, 160, 160, 0.98) 100%
+                        )` // 未完成的拼圖保持不透明遮蓋，隱藏地圖
+                  }}
+                >
+                  {/* 拼圖塊內容 */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
+                    {/* 書卷名稱 */}
+                    <div className={`text-center ${
+                      piece.width < 12 ? 'text-xs' : 'text-sm'
+                    } font-bold ${
+                      isCompleted 
+                        ? 'text-white drop-shadow-lg' // 完成的拼圖用白色文字，有陰影
+                        : 'text-gray-700' // 未完成用深灰色
+                    } leading-tight`}>
+                      {piece.book.name.length > 6 
+                        ? piece.book.name.substring(0, 4) + '...' 
+                        : piece.book.name
+                      }
+                    </div>
+                    
+                    {/* 完成標記 */}
+                    {isCompleted && (
+                      <div className="text-white text-lg font-bold drop-shadow-lg animate-pulse">
+                        ✓
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 拼圖塊光澤效果 */}
+                  {isCompleted && (
+                    <div 
+                      className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent pointer-events-none"
+                      style={{
+                        clipPath: `polygon(
+                          ${2 + Math.sin(piece.id) * 3}% ${2 + Math.cos(piece.id) * 3}%, 
+                          ${97 + Math.sin(piece.id + 1) * 3}% ${2 + Math.cos(piece.id + 1) * 3}%, 
+                          ${97 + Math.sin(piece.id + 2) * 3}% ${97 + Math.cos(piece.id + 2) * 3}%, 
+                          ${2 + Math.sin(piece.id + 3) * 3}% ${97 + Math.cos(piece.id + 3) * 3}%
+                        )`
+                      }}
+                    />
+                  )}
+                </div>
+
+                {/* 懸停提示 */}
+                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-20">
+                  {piece.book.name} ({piece.book.chapters}章)
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* 進度統計 */}
+        <div className="mt-6 p-4 bg-white/80 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-gray-700 font-medium">拼圖完成度</span>
+            <span className="text-2xl font-bold text-green-600">
+              {Math.round((completedBooks.length / ALL_BOOKS.length) * 100)}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-green-400 to-emerald-500 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${(completedBooks.length / ALL_BOOKS.length) * 100}%` }}
+            ></div>
+          </div>
+          <div className="text-center mt-2 text-sm text-gray-600">
+            {completedBooks.length === ALL_BOOKS.length 
+              ? "🎉 恭喜！您已經完全得著應許之地！" 
+              : `還需要 ${ALL_BOOKS.length - completedBooks.length} 塊拼圖，就能完全看見聖地全貌`
+            }
+          </div>
+          <div className="text-center mt-1 text-xs text-gray-500">
+            💡 完成書卷後，拼圖會變透明，顯示底下的真實聖地地圖
+          </div>
+          <div className="text-center mt-1 text-xs text-blue-600 font-medium">
+            🗺️ 每完成一卷書，就能"得著"一塊應許之地！
+          </div>
+        </div>
+        
+        {/* 版權聲明 */}
+        <div className="mt-4 p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+          <div className="text-xs text-gray-600 leading-relaxed">
+            <div className="font-semibold text-gray-700 mb-1">📍 地圖來源</div>
+            <div>
+              地圖來自{' '}
+              <a 
+                href="https://biblegeography.holylight.org.tw/index/condensedbible_map_detail?m_id=106" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-800 underline"
+              >
+                聖光聖經地理資訊網
+              </a>
+            </div>
+            <div className="mt-1 text-gray-500">
+              按其版權說明歡迎作教會內非牟利使用
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showFireworks && (
+        <h2 className='text-center text-2xl font-bold text-green-600 mt-4'>
+          🎉 恭喜！您已經完全得著應許之地！🎉
+        </h2>
+      )}
+      
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
+        <h2 className="text-xl font-bold">🧩 拼圖解鎖！</h2>
+        <p className="mt-2">您又解鎖了新的拼圖塊！繼續努力，完成整幅應許之地的地圖！</p>
+      </Modal>
+
+      {/* 拼圖動畫 CSS */}
+      <style jsx>{`
+        @keyframes puzzle-drop {
+          0% { 
+            transform: translateY(-100px) rotate(15deg) scale(1.2); 
+            opacity: 0; 
+          }
+          60% { 
+            transform: translateY(10px) rotate(-5deg) scale(1.1); 
+            opacity: 0.8; 
+          }
+          80% { 
+            transform: translateY(-5px) rotate(2deg) scale(1.05); 
+            opacity: 0.9; 
+          }
+          100% { 
+            transform: translateY(0) rotate(0deg) scale(1); 
+            opacity: 1; 
+          }
+        }
+        
+        @keyframes puzzle-glow {
+          0%, 100% { 
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4), 
+                        inset 0 2px 4px rgba(255, 255, 255, 0.4); 
+          }
+          50% { 
+            box-shadow: 0 6px 20px rgba(217, 119, 6, 0.8), 
+                        inset 0 2px 4px rgba(255, 255, 255, 0.6),
+                        0 0 30px rgba(251, 191, 36, 0.6); 
+          }
+        }
+        
+        .animate-puzzle-drop {
+          animation: puzzle-drop 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        
+        .animate-puzzle-glow {
+          animation: puzzle-glow 2s ease-in-out infinite;
+        }
+      `}</style>
+    </> 
+  )
+}
