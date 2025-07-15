@@ -1,0 +1,110 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { ALL_BOOKS } from '@/lib/bibleData'
+import Modal from '../../components/ui/Modal'
+
+interface MapViewProps {
+  completedBooks: string[];
+  showEncouragement: boolean;
+  showFireworks: boolean;
+}
+
+// Simple MapView - iOS compatible
+export default function MapView({ completedBooks, showEncouragement, showFireworks }: MapViewProps) {
+  const [showModal, setShowModal] = useState(false)
+  const completedSet = new Set(completedBooks)
+
+  useEffect(() => {
+    if (showEncouragement) {
+      setShowModal(true)
+    }
+  }, [showEncouragement])
+
+  return (
+    <>
+      <div className="w-full bg-gradient-to-b from-amber-100 via-yellow-50 to-orange-100 rounded-lg p-4 shadow-inner">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">🧩 應許之地進度</h2>
+          <p className="text-gray-600">完成每卷聖經，解鎖一本書卷</p>
+          <div className="text-sm text-gray-500 mt-2">
+            已完成 {completedBooks.length} / 66 卷
+          </div>
+        </div>
+
+        {/* Simple grid layout - works on all devices */}
+        <div className="grid grid-cols-6 gap-2 mb-6 max-w-4xl mx-auto">
+          {ALL_BOOKS.map((book, index) => {
+            const isCompleted = completedSet.has(book.name)
+            return (
+              <div
+                key={index}
+                className={`
+                  aspect-square rounded-lg border-2 p-2 text-center flex flex-col items-center justify-center
+                  ${isCompleted 
+                    ? 'bg-green-100 border-green-500 text-green-800' 
+                    : 'bg-gray-100 border-gray-300 text-gray-600'
+                  }
+                  transition-all duration-300 text-xs font-bold
+                `}
+                title={`${book.name} (${book.chapters}章)`}
+              >
+                <div className="leading-tight">
+                  {book.name.length > 4 ? book.name.substring(0, 3) + '.' : book.name}
+                </div>
+                {isCompleted && (
+                  <div className="text-green-600 text-sm mt-1">✓</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Progress bar */}
+        <div className="p-4 bg-white/80 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-gray-700 font-medium">完成進度</span>
+            <span className="text-2xl font-bold text-green-600">
+              {Math.round((completedBooks.length / ALL_BOOKS.length) * 100)}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-green-400 to-emerald-500 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${(completedBooks.length / ALL_BOOKS.length) * 100}%` }}
+            ></div>
+          </div>
+          <div className="text-center mt-2 text-sm text-gray-600">
+            {completedBooks.length === ALL_BOOKS.length 
+              ? "🎉 恭喜！您已經完成所有書卷！" 
+              : `還需要 ${ALL_BOOKS.length - completedBooks.length} 卷，就能完成整本聖經`
+            }
+          </div>
+        </div>
+
+        {showFireworks && (
+          <div className="text-center mt-4 p-4 bg-green-50 rounded-lg border-2 border-green-200">
+            <h3 className="text-xl font-bold text-green-800 mb-2">🎉 恭喜完成！🎉</h3>
+            <p className="text-green-700">您已經完成了整本聖經的閱讀計劃！</p>
+          </div>
+        )}
+
+        {/* Map info */}
+        <div className="mt-4 p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
+          <div className="text-xs text-gray-600">
+            <div className="font-semibold text-gray-700 mb-1">📍 關於地圖</div>
+            <div>
+              為了確保在所有設備上都能正常運作，我們使用了簡化的網格布局。
+              每個方塊代表一卷聖經，完成後會變成綠色。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
+        <h2 className="text-xl font-bold">📚 進度更新！</h2>
+        <p className="mt-2">您又完成了新的書卷！繼續努力完成整本聖經！</p>
+      </Modal>
+    </>
+  )
+}

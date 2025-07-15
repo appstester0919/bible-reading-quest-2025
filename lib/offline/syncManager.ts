@@ -74,9 +74,9 @@ class SyncManager {
       console.log('讀經進度已儲存到離線快取')
 
       // 註冊背景同步（如果支援）
-      if ('serviceWorker' in navigator && 'sync' in window.ServiceWorkerRegistration.prototype) {
-        const registration = await navigator.serviceWorker.ready
-        await registration.sync.register('background-sync-reading-progress')
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        const registration = await navigator.serviceWorker.ready;
+        (registration as any).sync.register('background-sync-reading-progress');
       }
 
       return true

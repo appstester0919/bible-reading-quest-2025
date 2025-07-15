@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ProfileForm from '@/components/ProfileForm'
+import { logger } from '@/lib/utils/logger'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -18,7 +19,7 @@ export default async function ProfilePage() {
     .single()
 
   if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
-    console.error('Error fetching profile:', error)
+    logger.error('Error fetching profile:', error)
   }
 
   return (

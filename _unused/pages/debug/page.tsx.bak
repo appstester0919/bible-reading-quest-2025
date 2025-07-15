@@ -1,0 +1,249 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+
+export default function DebugPage() {
+  const [deviceInfo, setDeviceInfo] = useState<any>({})
+  const [errorLogs, setErrorLogs] = useState<string[]>([])
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+    
+    if (typeof window !== 'undefined') {
+      // Capture device info
+      const info = {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        language: navigator.language,
+        cookieEnabled: navigator.cookieEnabled,
+        onLine: navigator.onLine,
+        screen: {
+          width: screen.width,
+          height: screen.height,
+          colorDepth: screen.colorDepth
+        },
+        window: {
+          innerWidth: window.innerWidth,
+          innerHeight: window.innerHeight,
+          devicePixelRatio: window.devicePixelRatio
+        },
+        location: {
+          href: window.location.href,
+          origin: window.location.origin,
+          protocol: window.location.protocol
+        },
+        isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
+        isSafari: /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
+        supportsWebGL: !!window.WebGLRenderingContext,
+        supportsCanvas: !!window.CanvasRenderingContext2D
+      }
+      setDeviceInfo(info)
+
+      // Override console.error to catch errors
+      const originalError = console.error
+      console.error = (...args) => {
+        setErrorLogs(prev => [...prev, args.join(' ')])
+        originalError.apply(console, args)
+      }
+
+      // Override window.onerror to catch global errors
+      window.onerror = (message, source, lineno, colno, error) => {
+        setErrorLogs(prev => [...prev, `Global Error: ${message} at ${source}:${lineno}:${colno}`])
+        return false
+      }
+
+      // Override unhandledrejection to catch promise errors
+      window.addEventListener('unhandledrejection', (event) => {
+        setErrorLogs(prev => [...prev, `Unhandled Promise Rejection: ${event.reason}`])
+      })
+    }
+  }, [])
+
+  if (!isClient) {
+    return <div className="p-4">Loading debug info...</div>
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6 text-gray-800">🔍 iOS Debug Information</h1>
+        
+        {/* Device Info */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">📱 Device Information</h2>
+          <div className="space-y-2 text-sm">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <strong>User Agent:</strong>
+                <div className="bg-gray-100 p-2 rounded text-xs mt-1 break-all">
+                  {deviceInfo.userAgent}
+                </div>
+              </div>
+              <div>
+                <strong>Platform:</strong> {deviceInfo.platform}
+              </div>
+              <div>
+                <strong>Language:</strong> {deviceInfo.language}
+              </div>
+              <div>
+                <strong>Online:</strong> {deviceInfo.onLine ? '✅' : '❌'}
+              </div>
+              <div>
+                <strong>Cookies:</strong> {deviceInfo.cookieEnabled ? '✅' : '❌'}
+              </div>
+              <div>
+                <strong>Is iOS:</strong> {deviceInfo.isIOS ? '✅' : '❌'}
+              </div>
+              <div>
+                <strong>Is Safari:</strong> {deviceInfo.isSafari ? '✅' : '❌'}
+              </div>
+              <div>
+                <strong>WebGL Support:</strong> {deviceInfo.supportsWebGL ? '✅' : '❌'}
+              </div>
+              <div>
+                <strong>Canvas Support:</strong> {deviceInfo.supportsCanvas ? '✅' : '❌'}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Screen Info */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">🖥️ Screen Information</h2>
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <strong>Screen Size:</strong> {deviceInfo.screen?.width} x {deviceInfo.screen?.height}
+            </div>
+            <div>
+              <strong>Window Size:</strong> {deviceInfo.window?.innerWidth} x {deviceInfo.window?.innerHeight}
+            </div>
+            <div>
+              <strong>Device Pixel Ratio:</strong> {deviceInfo.window?.devicePixelRatio}
+            </div>
+            <div>
+              <strong>Color Depth:</strong> {deviceInfo.screen?.colorDepth}
+            </div>
+          </div>
+        </div>
+
+        {/* Error Logs */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">🚨 Error Logs</h2>
+          {errorLogs.length > 0 ? (
+            <div className="space-y-2">
+              {errorLogs.map((error, index) => (
+                <div key={index} className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800">
+                  {error}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-green-600 text-sm">✅ No errors detected so far</div>
+          )}
+        </div>
+
+        {/* Test Map Component */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">🗺️ Test Map Component</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            This will test if the map component loads without errors:
+          </p>
+          <button
+            onClick={() => {
+              try {
+                window.location.href = '/map'
+              } catch (error) {
+                setErrorLogs(prev => [...prev, `Navigation Error: ${error}`])
+              }
+            }}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Go to Map Page
+          </button>
+        </div>
+
+        {/* Manual Error Test */}
+        <div className="bg-white rounded-lg shadow p-6 mt-6">
+          <h2 className="text-lg font-semibold mb-4 text-gray-700">🧪 Manual Tests</h2>
+          <div className="space-y-4">
+            <button
+              onClick={() => {
+                try {
+                  throw new Error('Test error for debugging')
+                } catch (error) {
+                  console.error('Manual test error:', error)
+                }
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded mr-2"
+            >
+              Test Error Logging
+            </button>
+            <button
+              onClick={() => {
+                console.log('Canvas test button clicked')
+                try {
+                  console.log('Creating canvas element...')
+                  const canvas = document.createElement('canvas')
+                  console.log('Canvas created:', canvas)
+                  
+                  const ctx = canvas.getContext('2d')
+                  console.log('Canvas context:', ctx)
+                  
+                  if (ctx) {
+                    console.log('Setting fill style...')
+                    ctx.fillStyle = 'red'
+                    console.log('Drawing rectangle...')
+                    ctx.fillRect(0, 0, 100, 100)
+                    console.log('Canvas test: Success')
+                    setErrorLogs(prev => [...prev, 'Canvas test: SUCCESS'])
+                  } else {
+                    console.error('Canvas test: Failed to get 2D context')
+                    setErrorLogs(prev => [...prev, 'Canvas test: FAILED - No 2D context'])
+                  }
+                } catch (error: any) {
+                  console.error('Canvas test error:', error)
+                  setErrorLogs(prev => [...prev, `Canvas test ERROR: ${error.message}`])
+                }
+              }}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mr-2"
+            >
+              Test Canvas
+            </button>
+            <button
+              onClick={() => {
+                console.log('Confetti test button clicked')
+                try {
+                  console.log('Loading confetti...')
+                  // Use the same safe loading pattern as OfflineCalendarView
+                  const confetti = typeof window !== 'undefined' ? 
+                    require('canvas-confetti') : null
+                  
+                  if (confetti && typeof confetti === 'function') {
+                    console.log('Confetti loaded, triggering animation...')
+                    confetti({
+                      particleCount: 100,
+                      spread: 70,
+                      origin: { y: 0.6 }
+                    })
+                    console.log('Confetti animation triggered')
+                    setErrorLogs(prev => [...prev, 'Confetti test: SUCCESS'])
+                  } else {
+                    console.warn('Confetti not available')
+                    setErrorLogs(prev => [...prev, 'Confetti test: NOT AVAILABLE'])
+                  }
+                } catch (error: any) {
+                  console.error('Confetti test error:', error)
+                  setErrorLogs(prev => [...prev, `Confetti test ERROR: ${error.message}`])
+                }
+              }}
+              className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
+            >
+              Test Confetti 🎉
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

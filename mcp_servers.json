@@ -1,0 +1,53 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-filesystem", "D:\\AI\\RovoDev"],
+      "description": "File system access for your RovoDev projects"
+    },
+    "git": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-git"],
+      "description": "Git version control operations"
+    },
+    "github": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "your-github-token-here"
+      },
+      "description": "GitHub repository management and API access"
+    },
+    "docker": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-docker"],
+      "description": "Docker container management and operations"
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-playwright"],
+      "description": "Web automation and testing with Playwright"
+    },
+    "brave-search": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/server-brave-search"],
+      "env": {
+        "BRAVE_API_KEY": "your-brave-api-key-here"
+      },
+      "description": "Web search capabilities via Brave Search API"
+    },
+    "vercel": {
+      "command": "node",
+      "args": ["D:\\AI\\RovoDev\\mcp-tools\\vercel-server.js"],
+      "env": {
+        "VERCEL_TOKEN": "your-vercel-token-here"
+      },
+      "description": "Vercel deployment and project management"
+    },
+    "bible-api": {
+      "command": "node",
+      "args": ["D:\\AI\\RovoDev\\mcp-tools\\bible-api-server.js"],
+      "description": "Bible API tools for reading plan and verse lookup"
+    }
+  }
+}

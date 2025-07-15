@@ -10,9 +10,9 @@ export default function MainAppLayout({
 }) {
   return (
     <PWAProvider>
-      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
+      <div className="min-h-screen">
         <TopNavbar />
-        <main className="relative pb-32 md:pb-40">{children}</main>
+        <main className="relative main-content-safe-padding">{children}</main>
         <BottomNavigation />
         <PWAInstaller />
       </div>

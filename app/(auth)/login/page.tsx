@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -9,12 +9,31 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
-  const supabase = createClient()
+  
+  // Initialize Supabase client only on the client side
+  const [supabase, setSupabase] = useState<ReturnType<typeof createClient> | null>(null)
+
+  useEffect(() => {
+    try {
+      const client = createClient()
+      setSupabase(client)
+    } catch (err) {
+      setError('Failed to initialize authentication service')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
+
+    if (!supabase) {
+      setError('Authentication service not available')
+      return
+    }
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -30,15 +49,26 @@ export default function LoginPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-md">
-        <h1 className="text-2xl font-bold text-center text-gray-900">登入您的帳戶</h1>
+        <h1 className="text-3xl font-bold text-center text-gray-900">登入您的帳戶</h1>
         <form onSubmit={handleSignIn} className="space-y-6">
           <div>
             <label
               htmlFor="email"
-              className="text-sm font-medium text-gray-700"
+              className="block text-xl md:text-lg font-medium text-gray-700 mb-2"
             >
               電子郵件
             </label>
@@ -50,14 +80,14 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 mt-1 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-4 py-4 text-xl md:text-lg text-gray-900 placeholder-gray-500 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
               placeholder="you@example.com"
             />
           </div>
           <div>
             <label
               htmlFor="password"
-              className="text-sm font-medium text-gray-700"
+              className="block text-xl md:text-lg font-medium text-gray-700 mb-2"
             >
               密碼
             </label>
@@ -69,23 +99,24 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 mt-1 text-gray-900 placeholder-gray-500 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full px-4 py-4 text-xl md:text-lg text-gray-900 placeholder-gray-500 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
               placeholder="••••••••"
             />
           </div>
           <div>
             <button
               type="submit"
-              className="w-full px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="w-full px-6 py-4 text-xl md:text-lg font-semibold text-white bg-indigo-600 border border-transparent rounded-lg shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 transform hover:scale-105"
             >
               登入
             </button>
           </div>
-          {error && <p className="text-sm text-center text-red-500">{error}</p>}
+          {error && <p className="text-lg text-center text-red-500 font-medium">{error}</p>}
         </form>
-        <p className="text-sm text-center text-gray-600">
+        <p className="text-lg text-center text-gray-600">
           還沒有帳戶嗎？{' '}
-          <Link href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+          <Link href="/signup" className="font-semibold text-indigo-600 hover:text-indigo-500 text-lg"
+          >
             立即註冊
           </Link>
         </p>

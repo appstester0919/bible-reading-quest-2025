@@ -59,35 +59,44 @@ export default function BottomNavigation() {
         borderRadius: '16px',
         boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
         border: '2px solid #6366f1',
-        padding: '16px 32px'
+        padding: isDesktop ? '16px 32px' : '12px 16px',
+        maxWidth: '95vw',
+        width: isDesktop ? 'auto' : '90vw'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: isDesktop ? '12px' : '8px',
+        justifyContent: 'space-between'
+      }}>
         {navItems.map((item, index) => (
-          <div key={item.href} style={{ display: 'flex', alignItems: 'center' }}>
+          <div key={item.href} style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
             <Link
               href={item.href}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
-                padding: '16px 20px',
+                flexDirection: isDesktop ? 'row' : 'column',
+                gap: isDesktop ? '12px' : '4px',
+                padding: isDesktop ? '16px 20px' : '8px 4px',
                 borderRadius: '12px',
                 textDecoration: 'none',
                 backgroundColor: item.isActive ? '#6366f1' : '#f8fafc',
                 color: item.isActive ? 'white' : '#1e293b',
                 fontWeight: '600',
-                fontSize: '16px',
+                fontSize: isDesktop ? '16px' : '12px',
                 border: item.isActive ? 'none' : '1px solid #e2e8f0',
                 transition: 'all 0.3s ease',
-                minWidth: '120px',
+                minWidth: isDesktop ? '120px' : 'auto',
+                width: '100%',
                 justifyContent: 'center'
               }}
             >
-              <span style={{ fontSize: '24px' }}>{item.icon}</span>
-              <span>{item.label}</span>
+              <span style={{ fontSize: isDesktop ? '24px' : '18px' }}>{item.icon}</span>
+              <span style={{ fontSize: isDesktop ? '16px' : '10px' }}>{item.label}</span>
             </Link>
-            {index < navItems.length - 1 && (
+            {index < navItems.length - 1 && isDesktop && (
               <div style={{ 
                 width: '2px', 
                 height: '40px', 

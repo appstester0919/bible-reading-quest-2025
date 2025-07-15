@@ -1,0 +1,17 @@
+{
+  "name": "rovodev-mcp-tools",
+  "version": "1.0.0",
+  "description": "Custom MCP tools for RovoDev",
+  "main": "vercel-server.js",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0"
+  },
+  "scripts": {
+    "install-deps": "npm install",
+    "start-vercel": "node vercel-server.js",
+    "start-bible": "node bible-api-server.js"
+  },
+  "keywords": ["mcp", "vercel", "rovodev", "bible"],
+  "author": "RovoDev",
+  "license": "MIT"
+}

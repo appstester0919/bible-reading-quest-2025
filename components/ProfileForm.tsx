@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image';
+
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
@@ -100,7 +102,7 @@ export default function ProfileForm({ profile }: { profile: Profile }) {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex items-center space-x-4">
               <div className="w-24 h-24 rounded-full bg-gray-200 flex-shrink-0">
-                {avatarUrl && <img src={avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" />}
+                {avatarUrl && <Image src={avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover" width={96} height={96} />}
               </div>
               <div>
                 <label htmlFor="avatar" className="block text-sm font-medium text-gray-700">上傳新頭像</label>

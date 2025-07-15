@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ALL_BOOKS } from '@/lib/bibleData'
-import confetti from 'canvas-confetti'
 import Modal from './ui/Modal'
-import dynamic from 'next/dynamic'
 
 interface MapViewProps {
   completedBooks: string[];
@@ -12,34 +10,26 @@ interface MapViewProps {
   showFireworks: boolean;
 }
 
-// 生成真實拼圖形狀
-const getPuzzleShape = (id: number) => {
-  const baseShapes = [
-    // 有右凸起的拼圖
-    `polygon(0% 0%, 70% 0%, 75% -5%, 85% -5%, 90% 0%, 100% 0%, 100% 100%, 0% 100%)`,
-    // 有下凸起的拼圖  
-    `polygon(0% 0%, 100% 0%, 100% 70%, 105% 75%, 105% 85%, 100% 90%, 100% 100%, 0% 100%)`,
-    // 有左凹槽的拼圖
-    `polygon(0% 0%, 100% 0%, 100% 100%, 30% 100%, 25% 105%, 15% 105%, 10% 100%, 0% 100%)`,
-    // 有上凹槽的拼圖
-    `polygon(0% 0%, 30% 0%, 25% -5%, 15% -5%, 10% 0%, 0% 0%, 0% 100%, 100% 100%, 100% 0%)`,
-    // 標準矩形
-    `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)`
-  ];
-  
-  return baseShapes[id % baseShapes.length];
-};
+interface TerritoryPiece {
+  id: number;
+  book: typeof ALL_BOOKS[0];
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isNewlyCompleted: boolean;
+}
 
-// 生成 11x6 拼圖網格 (配合地圖比例：橫6直11)
-const generatePuzzleGrid = () => {
-  const grid = [];
-  const cols = 6;  // 橫向6格
-  const rows = 11; // 直向11格
+// Generate simplified territory grid (same layout as original)
+const generateTerritoryGrid = (): TerritoryPiece[] => {
+  const grid: TerritoryPiece[] = []
+  const cols = 6  // 橫向6格
+  const rows = 11 // 直向11格
   
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
-      const index = row * cols + col;
-      if (index < 66) { // 只生成66塊拼圖
+      const index = row * cols + col
+      if (index < 66) { // 只生成66塊
         grid.push({
           id: index,
           book: ALL_BOOKS[index],
@@ -48,73 +38,168 @@ const generatePuzzleGrid = () => {
           width: 100 / cols,
           height: 100 / rows,
           isNewlyCompleted: false
-        });
+        })
       }
     }
   }
-  return grid;
-};
+  return grid
+}
 
+// Simplified territory piece component - iOS safe
+function TerritoryPiece({ 
+  piece, 
+  isCompleted 
+}: { 
+  piece: TerritoryPiece; 
+  isCompleted: boolean;
+}) {
+  // Simple puzzle-like effect using borders and pseudo-elements
+  const puzzleStyle = {
+    position: 'absolute' as const,
+    left: `${piece.x}%`,
+    top: `${piece.y}%`,
+    width: `${piece.width}%`,
+    height: `${piece.height}%`,
+    transition: 'all 0.3s ease',
+    
+    // Core 得地 effect: transparency to reveal map underneath
+    background: isCompleted 
+      ? 'rgba(255, 255, 255, 0.05)'  // Almost transparent = 得地!
+      : 'rgba(200, 200, 200, 0.95)', // Opaque = 未得地
+      
+    // Simple border instead of complex clipPath
+    border: isCompleted 
+      ? '2px solid rgba(34, 197, 94, 0.9)' 
+      : '2px solid rgba(120, 120, 120, 0.9)',
+      
+    // Soft rounded corners - safe for iOS
+    borderRadius: '6px',
+    
+    // Add subtle shadow for depth
+    boxShadow: isCompleted 
+      ? '0 0 10px rgba(34, 197, 94, 0.6)' 
+      : '0 2px 8px rgba(0, 0, 0, 0.3)',
+      
+    // Animation for newly completed territories
+    ...(piece.isNewlyCompleted && {
+      animation: 'territory-conquest 1.5s ease-out'
+    })
+  }
+
+  return (
+    <div
+      style={puzzleStyle}
+      className="cursor-pointer group"
+      title={`${piece.book.name} (${piece.book.chapters}章) ${isCompleted ? '(已得地)' : '(未得地)'}`}
+    >
+      {/* Territory content */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
+        {/* Book name */}
+        <div className={`text-center text-xs font-bold leading-tight ${
+          isCompleted 
+            ? 'text-white drop-shadow-lg' // White text for completed territories
+            : 'text-gray-700' // Dark text for incomplete territories
+        }`}>
+          {piece.book.name.length > 6 
+            ? piece.book.name.substring(0, 4) + '...' 
+            : piece.book.name
+          }
+        </div>
+        
+        {/* Completion marker */}
+        {isCompleted && (
+          <div className="text-white text-lg font-bold drop-shadow-lg mt-1">✓</div>
+        )}
+      </div>
+
+      {/* Hover tooltip */}
+      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-20 pointer-events-none">
+        {piece.book.name} ({piece.book.chapters}章)
+      </div>
+
+      {/* Simple puzzle connection points using pseudo-elements */}
+      <div 
+        className="absolute w-3 h-3 bg-current rounded-full opacity-30"
+        style={{
+          top: '10%',
+          right: '-6px',
+          transform: 'translateY(-50%)',
+          display: Math.random() > 0.5 ? 'block' : 'none' // Random puzzle connectors
+        }}
+      />
+      <div 
+        className="absolute w-3 h-3 bg-current rounded-full opacity-30"
+        style={{
+          bottom: '10%',
+          left: '-6px',
+          transform: 'translateY(50%)',
+          display: Math.random() > 0.5 ? 'block' : 'none' // Random puzzle connectors
+        }}
+      />
+    </div>
+  )
+}
+
+// Safe confetti celebration using unified confetti manager
+function CelebrationEffect({ showFireworks }: { showFireworks: boolean }) {
+  useEffect(() => {
+    if (showFireworks) {
+      // 使用統一的 confetti 管理器
+      import('@/lib/utils/confetti').then(({ celebrate }) => {
+        celebrate({ 
+          type: 'fireworks', 
+          duration: 5000 
+        })
+      }).catch(error => {
+        console.warn('Failed to load confetti manager:', error)
+      })
+    }
+  }, [showFireworks])
+
+  return null // Visual effect only, no DOM element needed
+}
+
+// Main enhanced MapView component
 export default function MapView({ completedBooks, showEncouragement, showFireworks }: MapViewProps) {
-  const [showModal, setShowModal] = useState(false);
-  const [puzzleGrid, setPuzzleGrid] = useState(() => generatePuzzleGrid());
-  const [previousCompletedCount, setPreviousCompletedCount] = useState(0);
+  const [showModal, setShowModal] = useState(false)
+  const [territoryGrid, setTerritoryGrid] = useState(() => generateTerritoryGrid())
+  const [previousCompletedCount, setPreviousCompletedCount] = useState(0)
+  const [showBookCelebration, setShowBookCelebration] = useState<string | null>(null)
 
   useEffect(() => {
     if (showEncouragement) {
-      setShowModal(true);
+      setShowModal(true)
     }
-  }, [showEncouragement]);
+  }, [showEncouragement])
 
-  useEffect(() => {
-    if (showFireworks) {
-      const duration = 5 * 1000;
-      const end = Date.now() + duration;
-
-      (function frame() {
-        confetti({
-          particleCount: 2,
-          angle: 60,
-          spread: 55,
-          origin: { x: 0 },
-        });
-        confetti({
-          particleCount: 2,
-          angle: 120,
-          spread: 55,
-          origin: { x: 1 },
-        });
-
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
-        }
-      }());
-    }
-  }, [showFireworks]);
-
-  const completedSet = new Set(completedBooks);
-
-  // 檢測新完成的拼圖塊並觸發動畫
+  // Track newly completed books for animation and celebration
   useEffect(() => {
     if (completedBooks.length > previousCompletedCount) {
-      // 有新完成的書卷，觸發拼圖掉落動畫
-      const newlyCompletedBooks = completedBooks.slice(previousCompletedCount);
+      const newlyCompletedBooks = completedBooks.slice(previousCompletedCount)
       
-      setPuzzleGrid(prev => prev.map(piece => ({
+      // Show celebration for the latest completed book
+      if (newlyCompletedBooks.length > 0) {
+        setShowBookCelebration(newlyCompletedBooks[newlyCompletedBooks.length - 1])
+        setTimeout(() => setShowBookCelebration(null), 2000)
+      }
+      
+      setTerritoryGrid(prev => prev.map(piece => ({
         ...piece,
         isNewlyCompleted: newlyCompletedBooks.includes(piece.book.name)
-      })));
+      })))
 
-      // 3秒後清除動畫狀態
+      // Clear animation state after duration
       setTimeout(() => {
-        setPuzzleGrid(prev => prev.map(piece => ({
+        setTerritoryGrid(prev => prev.map(piece => ({
           ...piece,
           isNewlyCompleted: false
-        })));
-      }, 3000);
+        })))
+      }, 1500)
     }
-    setPreviousCompletedCount(completedBooks.length);
-  }, [completedBooks.length, previousCompletedCount]);
+    setPreviousCompletedCount(completedBooks.length)
+  }, [completedBooks, previousCompletedCount])
+
+  const completedSet = new Set(completedBooks)
 
   return (
     <>
@@ -127,14 +212,16 @@ export default function MapView({ completedBooks, showEncouragement, showFirewor
           </div>
         </div>
 
-        {/* 拼圖地圖容器 */}
-        <div className="relative w-full mx-auto rounded-lg overflow-hidden shadow-lg" 
-             style={{ 
-               aspectRatio: '6/11',  // 修正為橫6直11的比例
-               maxWidth: '100%'
-             }}>
+        {/* Puzzle map container with Israel map background */}
+        <div 
+          className="relative w-full mx-auto rounded-lg overflow-hidden shadow-lg" 
+          style={{ 
+            aspectRatio: '6/11',  // 橫6直11的比例
+            maxWidth: '100%'
+          }}
+        >
           
-          {/* 真實以色列地圖背景層 */}
+          {/* CORE FEATURE: Israel map background layer */}
           <div 
             className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat rounded-lg"
             style={{
@@ -143,102 +230,27 @@ export default function MapView({ completedBooks, showEncouragement, showFirewor
               backgroundPosition: 'center'
             }}
           >
-            {/* 地圖覆蓋層，增強對比度 */}
+            {/* Map overlay for better contrast */}
             <div className="absolute inset-0 bg-gradient-to-br from-amber-50/20 via-transparent to-amber-100/20"></div>
             
-            {/* 邊界框 */}
+            {/* Map border */}
             <div className="absolute inset-0 border-4 border-amber-700 rounded-lg opacity-80 shadow-inner"></div>
           </div>
 
-          {/* 拼圖塊 */}
-          {puzzleGrid.map((piece) => {
-            const isCompleted = completedSet.has(piece.book.name);
+          {/* Territory pieces overlay */}
+          {territoryGrid.map((piece) => {
+            const isCompleted = completedSet.has(piece.book.name)
             return (
-              <div
+              <TerritoryPiece
                 key={piece.id}
-                className={`absolute transition-all duration-700 cursor-pointer group ${
-                  isCompleted 
-                    ? 'opacity-100 z-10' 
-                    : 'opacity-90 hover:opacity-100'
-                } ${piece.isNewlyCompleted ? 'animate-puzzle-drop' : ''}`}
-                style={{
-                  left: `${piece.x}%`,
-                  top: `${piece.y}%`,
-                  width: `${piece.width}%`,
-                  height: `${piece.height}%`,
-                }}
-                title={`${piece.book.name} ${isCompleted ? '(已完成)' : '(未完成)'}`}
-              >
-                {/* 拼圖塊背景 */}
-                <div 
-                  className="w-full h-full relative"
-                  style={{
-                    clipPath: getPuzzleShape(piece.id),
-                    border: isCompleted 
-                      ? '2px solid rgba(34, 197, 94, 0.9)' // 完成的拼圖用綠色邊框，但更細，不遮蓋地圖
-                      : '3px solid rgba(120, 120, 120, 0.9)', // 未完成用較粗的灰色邊框
-                    boxShadow: isCompleted 
-                      ? '0 0 15px rgba(34, 197, 94, 0.8), inset 0 1px 3px rgba(255, 255, 255, 0.2)' // 完成的有綠色光暈但不遮蓋內容
-                      : '0 3px 12px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(0, 0, 0, 0.2)', // 未完成有強烈陰影遮蓋效果
-                    background: isCompleted 
-                      ? 'rgba(255, 255, 255, 0.05)' // 完成的拼圖幾乎完全透明，清楚顯示底下的地圖
-                      : `linear-gradient(135deg, 
-                          rgba(200, 200, 200, 0.98) 0%, 
-                          rgba(180, 180, 180, 0.98) 50%, 
-                          rgba(160, 160, 160, 0.98) 100%
-                        )` // 未完成的拼圖保持不透明遮蓋，隱藏地圖
-                  }}
-                >
-                  {/* 拼圖塊內容 */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
-                    {/* 書卷名稱 */}
-                    <div className={`text-center ${
-                      piece.width < 12 ? 'text-xs' : 'text-sm'
-                    } font-bold ${
-                      isCompleted 
-                        ? 'text-white drop-shadow-lg' // 完成的拼圖用白色文字，有陰影
-                        : 'text-gray-700' // 未完成用深灰色
-                    } leading-tight`}>
-                      {piece.book.name.length > 6 
-                        ? piece.book.name.substring(0, 4) + '...' 
-                        : piece.book.name
-                      }
-                    </div>
-                    
-                    {/* 完成標記 */}
-                    {isCompleted && (
-                      <div className="text-white text-lg font-bold drop-shadow-lg animate-pulse">
-                        ✓
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 拼圖塊光澤效果 */}
-                  {isCompleted && (
-                    <div 
-                      className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent pointer-events-none"
-                      style={{
-                        clipPath: `polygon(
-                          ${2 + Math.sin(piece.id) * 3}% ${2 + Math.cos(piece.id) * 3}%, 
-                          ${97 + Math.sin(piece.id + 1) * 3}% ${2 + Math.cos(piece.id + 1) * 3}%, 
-                          ${97 + Math.sin(piece.id + 2) * 3}% ${97 + Math.cos(piece.id + 2) * 3}%, 
-                          ${2 + Math.sin(piece.id + 3) * 3}% ${97 + Math.cos(piece.id + 3) * 3}%
-                        )`
-                      }}
-                    />
-                  )}
-                </div>
-
-                {/* 懸停提示 */}
-                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap z-20">
-                  {piece.book.name} ({piece.book.chapters}章)
-                </div>
-              </div>
-            );
+                piece={piece}
+                isCompleted={isCompleted}
+              />
+            )
           })}
         </div>
 
-        {/* 進度統計 */}
+        {/* Progress statistics */}
         <div className="mt-6 p-4 bg-white/80 rounded-lg shadow">
           <div className="flex justify-between items-center mb-2">
             <span className="text-gray-700 font-medium">拼圖完成度</span>
@@ -254,7 +266,7 @@ export default function MapView({ completedBooks, showEncouragement, showFirewor
           </div>
           <div className="text-center mt-2 text-sm text-gray-600">
             {completedBooks.length === ALL_BOOKS.length 
-              ? "🎉 恭喜！您已經完全得著應許之地！" 
+              ? '🎉 恭喜！您已經完全得著應許之地！' 
               : `還需要 ${ALL_BOOKS.length - completedBooks.length} 塊拼圖，就能完全看見聖地全貌`
             }
           </div>
@@ -262,11 +274,11 @@ export default function MapView({ completedBooks, showEncouragement, showFirewor
             💡 完成書卷後，拼圖會變透明，顯示底下的真實聖地地圖
           </div>
           <div className="text-center mt-1 text-xs text-blue-600 font-medium">
-            🗺️ 每完成一卷書，就能"得著"一塊應許之地！
+            🗺️ 每完成一卷書，就能得著一塊應許之地！
           </div>
         </div>
         
-        {/* 版權聲明 */}
+        {/* Copyright notice */}
         <div className="mt-4 p-3 bg-gray-50 rounded-lg border-l-4 border-blue-500">
           <div className="text-xs text-gray-600 leading-relaxed">
             <div className="font-semibold text-gray-700 mb-1">📍 地圖來源</div>
@@ -288,58 +300,55 @@ export default function MapView({ completedBooks, showEncouragement, showFirewor
         </div>
       </div>
 
+      {/* Fireworks celebration - full completion */}
       {showFireworks && (
-        <h2 className='text-center text-2xl font-bold text-green-600 mt-4'>
-          🎉 恭喜！您已經完全得著應許之地！🎉
-        </h2>
+        <div className="text-center mt-4 p-4 bg-green-50 rounded-lg border-2 border-green-200">
+          <h2 className="text-2xl font-bold text-green-600">🎉 恭喜！您已經完全得著應許之地！🎉</h2>
+        </div>
       )}
       
+      {/* Encouragement modal */}
       <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
         <h2 className="text-xl font-bold">🧩 拼圖解鎖！</h2>
         <p className="mt-2">您又解鎖了新的拼圖塊！繼續努力，完成整幅應許之地的地圖！</p>
       </Modal>
 
-      {/* 拼圖動畫 CSS */}
+      {/* Safe confetti celebration */}
+      <CelebrationEffect showFireworks={showFireworks} />
+
+      {/* Individual book completion celebration - iOS friendly */}
+      {showBookCelebration && (
+        <div className="fixed inset-0 pointer-events-none z-40 flex items-center justify-center">
+          <div className="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-6 py-3 rounded-lg shadow-lg animate-pulse">
+            <div className="text-center">
+              <div className="text-2xl mb-1">🎊 得地成功！</div>
+              <div className="text-lg font-bold">{showBookCelebration}</div>
+              <div className="text-sm">您又得著了一塊應許之地！</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSS animations - iOS safe */}
       <style jsx>{`
-        @keyframes puzzle-drop {
+        @keyframes territory-conquest {
           0% { 
-            transform: translateY(-100px) rotate(15deg) scale(1.2); 
-            opacity: 0; 
-          }
-          60% { 
-            transform: translateY(10px) rotate(-5deg) scale(1.1); 
-            opacity: 0.8; 
-          }
-          80% { 
-            transform: translateY(-5px) rotate(2deg) scale(1.05); 
-            opacity: 0.9; 
-          }
-          100% { 
-            transform: translateY(0) rotate(0deg) scale(1); 
-            opacity: 1; 
-          }
-        }
-        
-        @keyframes puzzle-glow {
-          0%, 100% { 
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4), 
-                        inset 0 2px 4px rgba(255, 255, 255, 0.4); 
+            background-color: rgba(200, 200, 200, 0.95);
+            transform: scale(1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
           }
           50% { 
-            box-shadow: 0 6px 20px rgba(217, 119, 6, 0.8), 
-                        inset 0 2px 4px rgba(255, 255, 255, 0.6),
-                        0 0 30px rgba(251, 191, 36, 0.6); 
+            background-color: rgba(251, 191, 36, 0.8);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
+          }
+          100% { 
+            background-color: rgba(255, 255, 255, 0.05);
+            transform: scale(1);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.6);
           }
         }
-        
-        .animate-puzzle-drop {
-          animation: puzzle-drop 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-        }
-        
-        .animate-puzzle-glow {
-          animation: puzzle-glow 2s ease-in-out infinite;
-        }
       `}</style>
-    </> 
+    </>
   )
 }

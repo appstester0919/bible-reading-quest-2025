@@ -183,27 +183,54 @@ export default function PlanForm({ existingPlan }: PlanFormProps) {
       <h1 className="text-2xl font-bold mb-6 text-gray-900">{existingPlan ? '更新您的讀經計劃' : '制定我的讀經計劃'}</h1>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">計劃開始日期</label>
-            <input type="date" id="startDate" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" required />
-        </div>
-        <div>
-            <label htmlFor="chaptersPerDay" className="block text-sm font-medium text-gray-700">每日閱讀章數</label>
-            <input type="number" id="chaptersPerDay" value={chaptersPerDay} onChange={(e) => setChaptersPerDay(parseInt(e.target.value, 10))} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" min="1" max="150" required />
-        </div>
-        <div>
-            <label className="block text-sm font-medium text-gray-700">閱讀順序</label>
-            <div className="mt-2 space-y-2">
-                <div className="flex items-center"><input id="ot_nt" type="radio" value="ot_nt" checked={readingOrder === 'ot_nt'} onChange={(e) => setReadingOrder(e.target.value)} className="h-4 w-4" /><label htmlFor="ot_nt" className="ml-3">先舊約，後新約</label></div>
-                <div className="flex items-center"><input id="nt_ot" type="radio" value="nt_ot" checked={readingOrder === 'nt_ot'} onChange={(e) => setReadingOrder(e.target.value)} className="h-4 w-4" /><label htmlFor="nt_ot" className="ml-3">先新約，後舊約</label></div>
-                <div className="flex items-center"><input id="parallel" type="radio" value="parallel" checked={readingOrder === 'parallel'} onChange={(e) => setReadingOrder(e.target.value)} className="h-4 w-4" /><label htmlFor="parallel" className="ml-3">新舊約同時進行</label></div>
+            <label htmlFor="startDate" className="block text-xl md:text-lg font-medium text-gray-700 mb-2">
+              計劃開始日期
+              <span className="block text-sm text-gray-500 mt-1">格式：月/日/年 (MM/DD/YYYY)</span>
+            </label>
+            <input 
+              type="date" 
+              id="startDate" 
+              value={startDate} 
+              onChange={(e) => setStartDate(e.target.value)} 
+              className="block w-full px-4 py-4 text-xl md:text-lg border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200" 
+              required 
+              placeholder="MM/DD/YYYY"
+            />
+            <div className="mt-2 text-sm text-gray-600">
+              選擇的日期：{startDate ? new Date(startDate + 'T00:00:00').toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit' 
+              }) : '未選擇'}
             </div>
         </div>
         <div>
-            <button type="submit" disabled={isLoading} className="w-full py-2 px-4 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:bg-indigo-400">
+            <label htmlFor="chaptersPerDay" className="block text-xl md:text-lg font-medium text-gray-700 mb-2">每日閱讀章數</label>
+            <input type="number" id="chaptersPerDay" value={chaptersPerDay} onChange={(e) => setChaptersPerDay(parseInt(e.target.value, 10))} className="block w-full px-4 py-4 text-xl md:text-lg border-2 border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200" min="1" max="150" required />
+        </div>
+        <div>
+            <label className="block text-xl md:text-lg font-medium text-gray-700 mb-3">閱讀順序</label>
+            <div className="space-y-3">
+                <div className="flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-indigo-300 transition-colors">
+                    <input id="ot_nt" type="radio" value="ot_nt" checked={readingOrder === 'ot_nt'} onChange={(e) => setReadingOrder(e.target.value)} className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-2 border-gray-300" />
+                    <label htmlFor="ot_nt" className="ml-4 text-xl md:text-lg font-medium text-gray-700">先舊約，後新約</label>
+                </div>
+                <div className="flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-indigo-300 transition-colors">
+                    <input id="nt_ot" type="radio" value="nt_ot" checked={readingOrder === 'nt_ot'} onChange={(e) => setReadingOrder(e.target.value)} className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-2 border-gray-300" />
+                    <label htmlFor="nt_ot" className="ml-4 text-xl md:text-lg font-medium text-gray-700">先新約，後舊約</label>
+                </div>
+                <div className="flex items-center p-3 border-2 border-gray-200 rounded-lg hover:border-indigo-300 transition-colors">
+                    <input id="parallel" type="radio" value="parallel" checked={readingOrder === 'parallel'} onChange={(e) => setReadingOrder(e.target.value)} className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-2 border-gray-300" />
+                    <label htmlFor="parallel" className="ml-4 text-xl md:text-lg font-medium text-gray-700">新舊約同時進行</label>
+                </div>
+            </div>
+        </div>
+        <div>
+            <button type="submit" disabled={isLoading} className="w-full py-4 px-6 text-xl md:text-lg font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-indigo-400 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-indigo-300">
                 {isLoading ? '儲存中...' : (existingPlan ? '更新計劃' : '生成計劃')}
             </button>
         </div>
-        {error && <p className="text-sm text-center text-red-500">{error}</p>}
+        {error && <p className="text-lg text-center text-red-500 font-medium">{error}</p>}
       </form>
     </div>
   )

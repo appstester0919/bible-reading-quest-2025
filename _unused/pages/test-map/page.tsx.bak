@@ -1,0 +1,160 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import ErrorBoundary from '@/components/ErrorBoundary'
+
+function MinimalMapTest() {
+  const [step, setStep] = useState(0)
+  const [logs, setLogs] = useState<string[]>([])
+  const [isIOS, setIsIOS] = useState(false)
+
+  const addLog = (message: string) => {
+    console.log(message)
+    setLogs(prev => [...prev, `${new Date().toLocaleTimeString()}: ${message}`])
+  }
+
+  useEffect(() => {
+    addLog('Component mounted')
+    
+    const iosCheck = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    setIsIOS(iosCheck)
+    addLog(`iOS detected: ${iosCheck}`)
+    
+    // Test each step progressively
+    setTimeout(() => {
+      addLog('Step 1: Basic rendering - OK')
+      setStep(1)
+    }, 1000)
+
+    setTimeout(() => {
+      addLog('Step 2: Testing imports...')
+      setStep(2)
+    }, 2000)
+
+    setTimeout(() => {
+      addLog('Step 3: Testing dynamic imports...')
+      setStep(3)
+    }, 3000)
+  }, [])
+
+  useEffect(() => {
+    if (step === 3) {
+      // Test dynamic import that might be causing issues
+      import('@/lib/bibleData').then(module => {
+        addLog('Step 3a: bibleData import - OK')
+        addLog(`Books count: ${module.ALL_BOOKS.length}`)
+        setStep(4)
+      }).catch(error => {
+        addLog(`Step 3a: bibleData import - ERROR: ${error.message}`)
+      })
+    }
+  }, [step])
+
+  useEffect(() => {
+    if (step === 4) {
+      // Test Modal import
+      import('@/components/ui/Modal').then(module => {
+        addLog('Step 4a: Modal import - OK')
+        setStep(5)
+      }).catch(error => {
+        addLog(`Step 4a: Modal import - ERROR: ${error.message}`)
+      })
+    }
+  }, [step])
+
+  const testGrid = () => {
+    try {
+      addLog('Testing grid rendering...')
+      setStep(6)
+    } catch (error: any) {
+      addLog(`Grid test ERROR: ${error.message}`)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-2xl font-bold mb-6">🧪 Minimal Map Test</h1>
+        
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Device Info</h2>
+          <div className="text-sm space-y-1">
+            <div>iOS: {isIOS ? '✅' : '❌'}</div>
+            <div>Current Step: {step}</div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Test Progress</h2>
+          <div className="space-y-2">
+            {logs.map((log, index) => (
+              <div key={index} className="text-sm font-mono bg-gray-100 p-2 rounded">
+                {log}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {step >= 5 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4">Manual Tests</h2>
+            <button
+              onClick={testGrid}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mr-2"
+            >
+              Test Grid Rendering
+            </button>
+          </div>
+        )}
+
+        {step >= 6 && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Simple Grid Test</h2>
+            <div className="grid grid-cols-6 gap-2 max-w-2xl">
+              {Array.from({ length: 12 }, (_, index) => (
+                <div
+                  key={index}
+                  className="aspect-square bg-blue-100 border-2 border-blue-300 rounded-lg flex items-center justify-center text-sm font-bold"
+                >
+                  {index + 1}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mt-6">
+          <button
+            onClick={() => window.location.href = '/debug'}
+            className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
+          >
+            ← Back to Debug
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function TestMapPage() {
+  return (
+    <ErrorBoundary
+      fallback={
+        <div className="min-h-screen bg-red-50 p-4 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow p-6 max-w-md text-center">
+            <h1 className="text-xl font-bold text-red-600 mb-4">❌ Test Failed</h1>
+            <p className="text-gray-600 mb-4">The minimal test component crashed.</p>
+            <button
+              onClick={() => window.location.href = '/debug'}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              Back to Debug
+            </button>
+          </div>
+        </div>
+      }
+    >
+      <MinimalMapTest />
+    </ErrorBoundary>
+  )
+}

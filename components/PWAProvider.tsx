@@ -85,7 +85,7 @@ export default function PWAProvider({ children }: PWAProviderProps) {
   // 如果還在初始化，顯示載入畫面
   if (!isInitialized) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
             <span className="text-2xl">📖</span>

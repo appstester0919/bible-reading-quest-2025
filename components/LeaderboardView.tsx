@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image';
+
 interface LeaderboardEntry {
   username: string | null;
   avatar_url: string | null;
@@ -105,12 +107,12 @@ export default function LeaderboardView({ data }: LeaderboardViewProps) {
             });
 
             return (
-              <div key={milestone.books} className="flex items-center gap-3 min-h-[44px] relative">
+              <div key={milestone.books} className="flex items-center gap-3 min-h-[64px] relative">{/* 增加高度以容納48px頭像 */}
                 {/* 左側跑道邊界 */}
                 <div className="w-2 h-full bg-white rounded-l"></div>
                 
                 {/* 里程碑標記 - 跑道風格 */}
-                <div className={`flex-shrink-0 w-24 h-10 ${milestone.color} rounded flex flex-col items-center justify-center shadow-md border border-white`}>
+                <div className={`flex-shrink-0 w-24 h-12 ${milestone.color} rounded flex flex-col items-center justify-center shadow-md border border-white`}>{/* 增加高度 */}
                   <div className="text-lg">{milestone.emoji}</div>
                   <div className={`text-xs font-bold ${milestone.textColor} whitespace-nowrap w-full text-center`}>
                     {milestone.books === 66 ? '66' : 
@@ -127,22 +129,36 @@ export default function LeaderboardView({ data }: LeaderboardViewProps) {
                         <div className="flex items-center relative">
                           {/* 跑者頭像 - 純圖標風格 */}
                           {user.avatar_url ? (
-                            <img 
+                            <Image 
                               src={user.avatar_url} 
                               alt={user.username || 'avatar'} 
                               className="rounded-full border-2 border-white shadow-md hover:scale-125 transition-all duration-200" 
-                              style={{ width: '24px', height: '24px' }}
-                              loading="lazy"
+                              width={48} 
+                              height={48}
+                              unoptimized={true}
+                              onError={(e) => {
+                                // 如果圖片載入失敗，隱藏圖片並顯示備用頭像
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
                             />
-                          ) : (
-                            <div className="rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white text-xs font-bold shadow-md border-2 border-white hover:scale-125 transition-all duration-200" style={{ width: '24px', height: '24px' }}>
-                              {user.username?.charAt(0).toUpperCase() || '🏃'}
-                            </div>
-                          )}
+                          ) : null}
+                          <div 
+                            className="rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center text-white text-lg font-bold shadow-md border-2 border-white hover:scale-125 transition-all duration-200" 
+                            style={{ 
+                              width: '48px', 
+                              height: '48px',
+                              display: user.avatar_url ? 'none' : 'flex'
+                            }}
+                          >
+                            {user.username?.charAt(0).toUpperCase() || '🏃'}
+                          </div>
 
-                          {/* 冠軍標記 - 縮小 */}
+                          {/* 冠軍標記 - 增大 */}
                           {userIndex === 0 && index === 0 && (
-                            <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center text-xs font-bold text-yellow-800 border border-white shadow-md animate-pulse">
+                            <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-lg font-bold text-yellow-800 border border-white shadow-md animate-pulse">
                               👑
                             </div>
                           )}

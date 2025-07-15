@@ -1,0 +1,376 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { ALL_BOOKS } from '@/lib/bibleData'
+import Modal from '../../components/ui/Modal'
+
+interface MapViewProps {
+  completedBooks: string[];
+  showEncouragement: boolean;
+  showFireworks: boolean;
+}
+
+// iOS detection
+const isIOS = () => {
+  if (typeof window === 'undefined') return false
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+}
+
+// Simple iOS-compatible MapView
+function SimpleMapView({ completedBooks, showEncouragement, showFireworks }: MapViewProps) {
+  const [showModal, setShowModal] = useState(false)
+  const completedSet = new Set(completedBooks)
+
+  useEffect(() => {
+    if (showEncouragement) {
+      setShowModal(true)
+    }
+  }, [showEncouragement])
+
+  return (
+    <>
+      <div className="w-full bg-gradient-to-b from-amber-100 via-yellow-50 to-orange-100 rounded-lg p-4 shadow-inner">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">🧩 應許之地進度</h2>
+          <p className="text-gray-600">完成每卷聖經，解鎖一本書卷</p>
+          <div className="text-sm text-gray-500 mt-2">
+            已完成 {completedBooks.length} / 66 卷
+          </div>
+        </div>
+
+        {/* Simple grid layout for iOS */}
+        <div className="grid grid-cols-6 gap-2 mb-6 max-w-4xl mx-auto">
+          {ALL_BOOKS.map((book, index) => {
+            const isCompleted = completedSet.has(book.name)
+            return (
+              <div
+                key={index}
+                className={`
+                  aspect-square rounded-lg border-2 p-2 text-center flex flex-col items-center justify-center
+                  ${isCompleted 
+                    ? 'bg-green-100 border-green-500 text-green-800' 
+                    : 'bg-gray-100 border-gray-300 text-gray-600'
+                  }
+                  transition-all duration-300
+                `}
+                title={`${book.name} (${book.chapters}章)`}
+              >
+                <div className="text-xs font-bold leading-tight">
+                  {book.name.length > 4 ? book.name.substring(0, 3) + '.' : book.name}
+                </div>
+                {isCompleted && (
+                  <div className="text-green-600 text-sm mt-1">✓</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Progress bar */}
+        <div className="p-4 bg-white/80 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-gray-700 font-medium">完成進度</span>
+            <span className="text-2xl font-bold text-green-600">
+              {Math.round((completedBooks.length / ALL_BOOKS.length) * 100)}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-green-400 to-emerald-500 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${(completedBooks.length / ALL_BOOKS.length) * 100}%` }}
+            ></div>
+          </div>
+          <div className="text-center mt-2 text-sm text-gray-600">
+            {completedBooks.length === ALL_BOOKS.length 
+              ? "🎉 恭喜！您已經完成所有書卷！" 
+              : `還需要 ${ALL_BOOKS.length - completedBooks.length} 卷，就能完成整本聖經`
+            }
+          </div>
+        </div>
+
+        {showFireworks && (
+          <div className="text-center mt-4 p-4 bg-green-50 rounded-lg border-2 border-green-200">
+            <h3 className="text-xl font-bold text-green-800 mb-2">🎉 恭喜完成！🎉</h3>
+            <p className="text-green-700">您已經完成了整本聖經的閱讀計劃！</p>
+          </div>
+        )}
+      </div>
+
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
+        <h2 className="text-xl font-bold">📚 進度更新！</h2>
+        <p className="mt-2">您又完成了新的書卷！繼續努力完成整本聖經！</p>
+      </Modal>
+    </>
+  )
+}
+
+// Complex MapView with puzzle pieces (original)
+function ComplexMapView({ completedBooks, showEncouragement, showFireworks }: MapViewProps) {
+  const [showModal, setShowModal] = useState(false)
+  const [puzzleGrid, setPuzzleGrid] = useState(() => generatePuzzleGrid())
+  const [previousCompletedCount, setPreviousCompletedCount] = useState(0)
+
+  // Safe confetti loading
+  const [confetti, setConfetti] = useState<any>(null)
+  
+  useEffect(() => {
+    // Only load confetti if not on iOS
+    if (!isIOS()) {
+      import('canvas-confetti').then(module => {
+        setConfetti(module.default)
+      }).catch(err => {
+        console.warn('Could not load confetti:', err)
+      })
+    }
+  }, [])
+
+  useEffect(() => {
+    if (showEncouragement) {
+      setShowModal(true)
+    }
+  }, [showEncouragement])
+
+  useEffect(() => {
+    if (showFireworks && confetti) {
+      try {
+        const duration = 5 * 1000
+        const end = Date.now() + duration
+
+        const frame = () => {
+          if (Date.now() < end) {
+            try {
+              confetti({
+                particleCount: 2,
+                angle: 60,
+                spread: 55,
+                origin: { x: 0 },
+              })
+              confetti({
+                particleCount: 2,
+                angle: 120,
+                spread: 55,
+                origin: { x: 1 },
+              })
+              requestAnimationFrame(frame)
+            } catch (error) {
+              console.warn('Confetti animation failed:', error)
+            }
+          }
+        }
+        frame()
+      } catch (error) {
+        console.warn('Confetti initialization failed:', error)
+      }
+    }
+  }, [showFireworks, confetti])
+
+  const completedSet = new Set(completedBooks)
+
+  // Check for newly completed books
+  useEffect(() => {
+    if (completedBooks.length > previousCompletedCount) {
+      const newlyCompletedBooks = completedBooks.slice(previousCompletedCount)
+      
+      setPuzzleGrid(prev => prev.map(piece => ({
+        ...piece,
+        isNewlyCompleted: newlyCompletedBooks.includes(piece.book.name)
+      })))
+
+      setTimeout(() => {
+        setPuzzleGrid(prev => prev.map(piece => ({
+          ...piece,
+          isNewlyCompleted: false
+        })))
+      }, 3000)
+    }
+    setPreviousCompletedCount(completedBooks.length)
+  }, [completedBooks, previousCompletedCount])
+
+  return (
+    <>
+      <div className="w-full bg-gradient-to-b from-amber-100 via-yellow-50 to-orange-100 rounded-lg p-4 shadow-inner relative overflow-hidden">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">🧩 應許之地拼圖</h2>
+          <p className="text-gray-600">完成每卷聖經，解鎖一塊聖地拼圖</p>
+          <div className="text-sm text-gray-500 mt-2">
+            已解鎖 {completedBooks.length} / 66 塊拼圖
+          </div>
+        </div>
+
+        {/* Puzzle map container */}
+        <div className="relative w-full mx-auto rounded-lg overflow-hidden shadow-lg" 
+             style={{ 
+               aspectRatio: '6/11',
+               maxWidth: '100%',
+               transform: 'translateZ(0)'
+             }}>
+          
+          {/* Background map */}
+          <div 
+            className="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat rounded-lg"
+            style={{
+              backgroundImage: 'url(/Map.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-50/20 via-transparent to-amber-100/20"></div>
+            <div className="absolute inset-0 border-4 border-amber-700 rounded-lg opacity-80 shadow-inner"></div>
+          </div>
+
+          {/* Puzzle pieces */}
+          {puzzleGrid.map((piece) => {
+            const isCompleted = completedSet.has(piece.book.name)
+            return (
+              <div
+                key={piece.id}
+                className={`absolute transition-all duration-700 cursor-pointer group ${
+                  isCompleted 
+                    ? 'opacity-100 z-10' 
+                    : 'opacity-90 hover:opacity-100'
+                } ${piece.isNewlyCompleted ? 'animate-pulse' : ''}`}
+                style={{
+                  left: `${piece.x}%`,
+                  top: `${piece.y}%`,
+                  width: `${piece.width}%`,
+                  height: `${piece.height}%`,
+                }}
+                title={`${piece.book.name} ${isCompleted ? '(已完成)' : '(未完成)'}`}
+              >
+                <div 
+                  className="w-full h-full relative"
+                  style={{
+                    clipPath: getPuzzleShape(piece.id),
+                    border: isCompleted 
+                      ? '2px solid rgba(34, 197, 94, 0.9)' 
+                      : '3px solid rgba(120, 120, 120, 0.9)',
+                    background: isCompleted 
+                      ? 'rgba(255, 255, 255, 0.05)' 
+                      : 'rgba(200, 200, 200, 0.95)',
+                    transform: 'translateZ(0)'
+                  }}
+                >
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
+                    <div className={`text-center text-xs font-bold ${
+                      isCompleted ? 'text-white drop-shadow-lg' : 'text-gray-700'
+                    } leading-tight`}>
+                      {piece.book.name.length > 6 
+                        ? piece.book.name.substring(0, 4) + '...' 
+                        : piece.book.name
+                      }
+                    </div>
+                    {isCompleted && (
+                      <div className="text-white text-lg font-bold drop-shadow-lg">✓</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Progress statistics */}
+        <div className="mt-6 p-4 bg-white/80 rounded-lg shadow">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-gray-700 font-medium">拼圖完成度</span>
+            <span className="text-2xl font-bold text-green-600">
+              {Math.round((completedBooks.length / ALL_BOOKS.length) * 100)}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className="bg-gradient-to-r from-green-400 to-emerald-500 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${(completedBooks.length / ALL_BOOKS.length) * 100}%` }}
+            ></div>
+          </div>
+          <div className="text-center mt-2 text-sm text-gray-600">
+            {completedBooks.length === ALL_BOOKS.length 
+              ? "🎉 恭喜！您已經完全得著應許之地！" 
+              : `還需要 ${ALL_BOOKS.length - completedBooks.length} 塊拼圖，就能完全看見聖地全貌`
+            }
+          </div>
+        </div>
+      </div>
+
+      {showFireworks && (
+        <div className="text-center mt-4 p-4 bg-green-50 rounded-lg border-2 border-green-200">
+          <h2 className="text-2xl font-bold text-green-600">🎉 恭喜！您已經完全得著應許之地！🎉</h2>
+        </div>
+      )}
+      
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)}>
+        <h2 className="text-xl font-bold">🧩 拼圖解鎖！</h2>
+        <p className="mt-2">您又解鎖了新的拼圖塊！繼續努力，完成整幅應許之地的地圖！</p>
+      </Modal>
+    </>
+  )
+}
+
+// Generate puzzle grid
+const generatePuzzleGrid = () => {
+  const grid = []
+  const cols = 6
+  const rows = 11
+  
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const index = row * cols + col
+      if (index < 66) {
+        grid.push({
+          id: index,
+          book: ALL_BOOKS[index],
+          x: (col / cols) * 100,
+          y: (row / rows) * 100,
+          width: 100 / cols,
+          height: 100 / rows,
+          isNewlyCompleted: false
+        })
+      }
+    }
+  }
+  return grid
+}
+
+// Get puzzle shape
+const getPuzzleShape = (id: number) => {
+  const baseShapes = [
+    `polygon(0% 0%, 70% 0%, 75% -5%, 85% -5%, 90% 0%, 100% 0%, 100% 100%, 0% 100%)`,
+    `polygon(0% 0%, 100% 0%, 100% 70%, 105% 75%, 105% 85%, 100% 90%, 100% 100%, 0% 100%)`,
+    `polygon(0% 0%, 100% 0%, 100% 100%, 30% 100%, 25% 105%, 15% 105%, 10% 100%, 0% 100%)`,
+    `polygon(0% 0%, 30% 0%, 25% -5%, 15% -5%, 10% 0%, 0% 0%, 0% 100%, 100% 100%, 100% 0%)`,
+    `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)`
+  ]
+  
+  return baseShapes[id % baseShapes.length]
+}
+
+// Main component with device detection
+export default function MapView(props: MapViewProps) {
+  const [deviceType, setDeviceType] = useState<'ios' | 'other'>('other')
+  const [isClient, setIsClient] = useState(false)
+
+  useEffect(() => {
+    setIsClient(true)
+    setDeviceType(isIOS() ? 'ios' : 'other')
+  }, [])
+
+  // Show loading during hydration
+  if (!isClient) {
+    return (
+      <div className="w-full bg-gradient-to-b from-amber-100 via-yellow-50 to-orange-100 rounded-lg p-4 shadow-inner">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">載入地圖中...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Use simple view for iOS devices
+  if (deviceType === 'ios') {
+    return <SimpleMapView {...props} />
+  }
+
+  // Use complex view for other devices
+  return <ComplexMapView {...props} />
+}

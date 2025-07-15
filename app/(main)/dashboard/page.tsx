@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import OfflineCalendarView from '@/components/OfflineCalendarView'
+import { PageLoader, InlineLoader } from '@/components/ui/LoadingSpinner'
 import type { User } from '@supabase/supabase-js'
 
 export default function DashboardPage() {
@@ -35,7 +36,7 @@ export default function DashboardPage() {
           .select('read_date')
           .eq('user_id', user.id);
         
-        setProgress(new Set(progressData?.map(p => p.read_date) || []));
+        setProgress(new Set(progressData?.map((p: { read_date: string }) => p.read_date) || []));
       }
       setIsLoading(false);
     };
@@ -44,7 +45,7 @@ export default function DashboardPage() {
   }, [supabase]);
 
   if (isLoading) {
-    return <p className="p-8">載入中...</p>;
+    return <PageLoader text="載入您的讀經日曆..." />;
   }
 
   if (!user) {
