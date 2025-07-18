@@ -3,6 +3,10 @@ import { redirect } from 'next/navigation'
 import ProfileForm from '@/components/ProfileForm'
 import { logger } from '@/lib/utils/logger'
 
+// 禁用快取，確保資料即時更新
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function ProfilePage() {
   const supabase = await createClient()
 

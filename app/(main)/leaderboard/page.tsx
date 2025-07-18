@@ -3,6 +3,10 @@ import { ALL_BOOKS } from '@/lib/bibleData'
 import LeaderboardView from '@/components/LeaderboardView'
 import { logger } from '@/lib/utils/logger'
 
+// 禁用快取，確保資料即時更新
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // Helper function to parse reading strings like "Genesis 1-3"
 const getBookFromReading = (reading: string): string => {
   return reading.split(' ').slice(0, -1).join(' ');

@@ -25,7 +25,7 @@ export interface CachedBibleContent {
 
 class IndexedDBManager {
   private dbName = 'BibleReadingQuestDB'
-  private version = 1
+  private version = 2 // 增加版本號以觸發升級
   private db: IDBDatabase | null = null
 
   async init(): Promise<void> {

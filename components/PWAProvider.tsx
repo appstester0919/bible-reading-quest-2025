@@ -25,7 +25,8 @@ export default function PWAProvider({ children }: PWAProviderProps) {
         // 註冊 Service Worker
         if ('serviceWorker' in navigator) {
           const registration = await navigator.serviceWorker.register('/sw.js', {
-            scope: '/'
+            scope: '/',
+            updateViaCache: 'none' // 強制檢查 SW 更新
           })
           
           if (process.env.NODE_ENV === 'development') {
@@ -41,11 +42,17 @@ export default function PWAProvider({ children }: PWAProviderProps) {
                   if (process.env.NODE_ENV === 'development') {
                     console.log('新的 Service Worker 已安裝，準備更新')
                   }
-                  // 可以在這裡顯示更新提示
+                  // 觸發頁面重新載入以使用新版本
+                  window.location.reload()
                 }
               })
             }
           })
+
+          // 定期檢查更新
+          setInterval(() => {
+            registration.update()
+          }, 60000) // 每分鐘檢查一次
         }
 
         // 初始化網路狀態監聽

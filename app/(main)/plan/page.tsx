@@ -2,6 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import PlanForm from '@/components/PlanForm'
 
+// Disable caching for real-time data
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function PlanPage() {
   const supabase = await createClient()
 
