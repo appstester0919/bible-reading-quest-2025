@@ -70,6 +70,7 @@ export default function RootLayout({
         <ToastProvider>
           {children}
         </ToastProvider>
+        <script src="/sw-update.js" defer></script>
       </body>
     </html>
   );

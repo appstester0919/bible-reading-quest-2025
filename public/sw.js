@@ -1,5 +1,5 @@
 // Service Worker for Bible Reading Quest
-const CACHE_NAME = 'bible-reading-quest-v1';
+const CACHE_NAME = 'bible-reading-quest-v' + new Date().getTime();
 const OFFLINE_URL = '/offline';
 
 // 需要快取的核心檔案
@@ -66,6 +66,7 @@ self.addEventListener('activate', (event) => {
       })
       .then(() => {
         devLog('Service Worker: Activated successfully');
+        // 立即控制所有客戶端，強制更新
         return self.clients.claim();
       })
   );
@@ -124,6 +125,13 @@ self.addEventListener('fetch', (event) => {
           });
       })
   );
+});
+
+// 監聽來自客戶端的消息
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.action === 'skipWaiting') {
+    self.skipWaiting();
+  }
 });
 
 // 背景同步
