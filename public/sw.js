@@ -1,15 +1,9 @@
-// Service Worker for Bible Reading Quest
-const CACHE_NAME = 'bible-reading-quest-v' + new Date().getTime();
+// Service Worker for Bible Reading Quest - Fixed redirect issue
+const CACHE_NAME = 'bible-reading-quest-v' + Date.now();
 const OFFLINE_URL = '/offline';
 
-// 需要快取的核心檔案
+// 需要快取的核心檔案（移除需要認證的頁面）
 const CORE_CACHE_FILES = [
-  '/',
-  '/dashboard',
-  '/map',
-  '/leaderboard',
-  '/profile',
-  '/plan',
   '/login',
   '/signup',
   '/offline',
@@ -92,6 +86,41 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 跳過需要認證檢查的頁面，讓 middleware 處理重定向
+  const url = new URL(event.request.url);
+  const protectedPaths = ['/dashboard', '/map', '/leaderboard', '/plan', '/profile'];
+  const isProtectedPath = protectedPaths.some(path => url.pathname.startsWith(path));
+  
+  if (isProtectedPath) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          // 只快取成功的響應（非重定向）
+          if (response.status === 200 && response.type === 'basic') {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+          }
+          return response;
+        })
+        .catch(() => {
+          // 網路失敗時，嘗試從快取獲取
+          return caches.match(event.request)
+            .then((cachedResponse) => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              // 如果沒有快取，返回離線頁面
+              return caches.match(OFFLINE_URL);
+            });
+        })
+    );
+    return;
+  }
+
+  // 處理其他請求（靜態資源等）
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
